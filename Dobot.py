@@ -1,3 +1,4 @@
+import math
 from dobot import DobotDllType as dType
 
 CON_STR = {
@@ -10,7 +11,7 @@ DobotAPI = dType.load()
 
 
 class Dobot():
-    def __init__(self, home_x=200, home_y=0, home_z=0):
+    def __init__(self, home_x=200, home_y=0, home_z=50):
         self.home_x = home_x
         self.home_y = home_y
         self.home_z = home_z
@@ -27,6 +28,9 @@ class Dobot():
 
     def disconnect(self):
         dType.DisconnectDobot(DobotAPI)
+
+    def setHOMEParam(self, x, y, z):
+        dType.SetHOMEParams(DobotAPI, x, y, z, 0, isQueued=1)
 
     def setHOME(self):
         dType.SetHOMECmd(DobotAPI, temp=0, isQueued=1)
@@ -47,31 +51,52 @@ class Dobot():
     def getCurrentPosition(self):
         return
 
-    def sleep(self, ms):
-        dType.dSleep(ms)
+    def sleep(self, s):
+        dType.dSleep(s)
 
     def drawStar(self, z):
         star_points = [[315, 0], [278, 20], [278, 55], [240, 40], [200, 60], [230, 0],
-                       [240, -40], [200, -60], [240, -40], [278, -55], [278, -20], [315, 0]]
+                       [200, -60], [240, -40], [278, -55], [278, -20], [315, 0]]
 
         for i, point in enumerate(star_points):
             self.moveXYZ(point[0], point[1], z)
-            self.sleep(200)
+            self.sleep(0.2)
             if i < len(star_points) - 1:
                 next = star_points[i + 1]
                 self.moveXYZ(next[0], next[1], z)
-                self.sleep(200)
+                self.sleep(0.2)
                 self.moveXYZ(point[0], point[1], z)
-                self.sleep(200)
+                self.sleep(0.2)
             else:
                 self.moveXYZ(point[0], point[1], z + 30)
 
     def drawSquare(self, size, x, y, z):
         points = [[x, y], [x + size, y], [x + size, y + size], [x, y + size], [x, y]]
 
-        for point in points:
+        for i, point in enumerate(points):
             self.moveXYZ(point[0], point[1], z)
-            self.sleep(200)
+            self.sleep(0.2)
+            if i < len(points) - 1:
+                next_point = points[i + 1]
+                self.moveXYZ(next_point[0], next_point[1], z)
+                self.sleep(0.2)
+                self.moveXYZ(point[0], point[1], z)
+                self.sleep(0.2)
+            else:
+                self.moveXYZ(point[0], point[1], z + 30)
+
+    def drawDot(self, dotRadius, x, y, z):
+        self.moveXYZ(x, y, z)
+        self.sleep(0.1)
+
+        for X in range(-1 * dotRadius, dotRadius, 1):
+            for Y in range(-1 * dotRadius, dotRadius, 1):
+                if math.sqrt(math.pow(X, 2) + math.pow(Y, 2)) < dotRadius:
+                    x_ = x + X
+                    y_ = y + Y
+                    self.moveXYZ(x_, y_, z)
+
+        self.moveXYZ(x, y, z + 30)
 
 
 if __name__ == '__main__':
