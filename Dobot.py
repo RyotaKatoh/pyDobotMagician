@@ -39,6 +39,9 @@ class Dobot():
         idx = dType.SetPTPCmd(DobotAPI, dType.PTPMode.PTPMOVLXYZMode, x, y, z, r, isQueued=1)[0]
         return idx
 
+    def emergencyStop(self):
+        return
+
     def startQueue(self):
         dType.SetQueuedCmdStartExec(DobotAPI)
 
