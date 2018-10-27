@@ -24,7 +24,7 @@ class Dobot():
 
         dType.SetQueuedCmdClear(DobotAPI)
         dType.SetHOMEParams(DobotAPI, self.home_x, self.home_y, self.home_z, 0, isQueued=1)
-        self.setHOME()
+        # self.setHOME()
 
     def disconnect(self):
         dType.DisconnectDobot(DobotAPI)
@@ -56,6 +56,13 @@ class Dobot():
 
     def sleep(self, s):
         dType.dSleep(s)
+
+    def drawLine(self, current_pos, next_pos, z):
+        self.moveXYZ(next_pos["x"], next_pos["y"], z)
+        self.sleep(0.2)
+        self.moveXYZ(current_pos["x"], current_pos["y"], z)
+        self.sleep(0.2)
+        self.moveXYZ(next_pos["x"], next_pos["y"], z)
 
     def drawStar(self, z):
         star_points = [[315, 0], [278, 20], [278, 55], [240, 40], [200, 60], [230, 0],
