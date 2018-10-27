@@ -42,11 +42,13 @@ class Dobot():
 
     def moveXYZ(self, x, y, z, r=0, mode="movl"):
         if self.production:
+            y_offset = 20.0 / 22.5
+
             ptp_mode = dType.PTPMode.PTPMOVLXYZMode
             if mode == 'jump':
                 ptp_mode = dType.PTPMode.PTPJUMPXYZMode
 
-            idx = dType.SetPTPCmd(self.DobotAPI, ptp_mode, x, y, z, r, isQueued=1)[0]
+            idx = dType.SetPTPCmd(self.DobotAPI, ptp_mode, x, y*y_offset, z, r, isQueued=1)[0]
             self.sleep(0.2)
         else:
             print("try to move ({x}, {y}, {z})".format(x=x, y=y, z=z))
