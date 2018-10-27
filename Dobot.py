@@ -40,13 +40,25 @@ class Dobot():
     def setHOME(self):
         dType.SetHOMECmd(self.DobotAPI, temp=0, isQueued=1)
 
-    def moveXYZ(self, x, y, z, r=0):
+    def moveXYZ(self, x, y, z, r=0, mode="movl"):
         if self.production:
-            idx = dType.SetPTPCmd(self.DobotAPI, dType.PTPMode.PTPMOVLXYZMode, x, y, z, r, isQueued=1)[0]
+            ptp_mode = dType.PTPMode.PTPMOVLXYZMode
+            if mode == 'jump':
+                ptp_mode = dType.PTPMode.PTPJUMPXYZMode
+
+            idx = dType.SetPTPCmd(self.DobotAPI, ptp_mode, x, y, z, r, isQueued=1)[0]
         else:
             print("try to move ({x}, {y}, {z})".format(x=x, y=y, z=z))
             idx = -1
         return idx
+
+    def getPose(self):
+        if self.production:
+            pose = dType.GetPose(self.DobotAPI)
+        else:
+            pose = [200, 0, 0]
+
+        return pose[:2]
 
 
     def startQueue(self):
