@@ -7,62 +7,71 @@ CON_STR = {
     dType.DobotConnect.DobotConnect_Occupied: "DobotConnect_Occupied"
 }
 
-DobotAPI = dType.load()
-
 
 class Dobot():
-    def __init__(self, home_x=200, home_y=0, home_z=50):
+    def __init__(self, home_x=200, home_y=0, home_z=50, production=False):
+        self.production = production
+
+        if production:
+            self.DobotAPI = dType.load()
+
         self.home_x = home_x
         self.home_y = home_y
         self.home_z = home_z
 
+        if production:
+            self.connect()
+
     def connect(self):
-        state = dType.ConnectDobot(DobotAPI, "", 115200)
+        state = dType.ConnectDobot(self.DobotAPI, "", 115200)
 
         if state[0] != dType.DobotConnect.DobotConnect_NoError:
             raise ValueError("Failed to connect dobot. ", CON_STR[state[0]])
 
-        dType.SetQueuedCmdClear(DobotAPI)
-        dType.SetHOMEParams(DobotAPI, self.home_x, self.home_y, self.home_z, 0, isQueued=1)
-        # self.setHOME()
+        dType.SetQueuedCmdClear(self.DobotAPI)
+        dType.SetHOMEParams(self.DobotAPI, self.home_x, self.home_y, self.home_z, 0, isQueued=1)
 
     def disconnect(self):
-        dType.DisconnectDobot(DobotAPI)
+        dType.DisconnectDobot(self.DobotAPI)
 
     def setHOMEParam(self, x, y, z):
-        dType.SetHOMEParams(DobotAPI, x, y, z, 0, isQueued=1)
+        dType.SetHOMEParams(self.DobotAPI, x, y, z, 0, isQueued=1)
 
     def setHOME(self):
-        dType.SetHOMECmd(DobotAPI, temp=0, isQueued=1)
+        dType.SetHOMECmd(self.DobotAPI, temp=0, isQueued=1)
 
     def moveXYZ(self, x, y, z, r=0):
-        idx = dType.SetPTPCmd(DobotAPI, dType.PTPMode.PTPMOVLXYZMode, x, y, z, r, isQueued=1)[0]
+        if self.production:
+            idx = dType.SetPTPCmd(self.DobotAPI, dType.PTPMode.PTPMOVLXYZMode, x, y, z, r, isQueued=1)[0]
+        else:
+            print("try to move ({x}, {y}, {z})".format(x=x, y=y, z=z))
+            idx = -1
         return idx
 
-    def emergencyStop(self):
-        return
 
     def startQueue(self):
-        dType.SetQueuedCmdStartExec(DobotAPI)
+        dType.SetQueuedCmdStartExec(self.DobotAPI)
 
     def stopQueue(self):
-        dType.SetQueuedCmdStopExec(DobotAPI)
+        dType.SetQueuedCmdStopExec(self.DobotAPI)
 
     def getCurrentIndex(self):
-        return dType.GetQueuedCmdCurrentIndex(DobotAPI)
+        return dType.GetQueuedCmdCurrentIndex(self.DobotAPI)
 
     def getCurrentPosition(self):
         return
 
     def sleep(self, s):
-        dType.dSleep(s)
+        if self.production:
+            dType.dSleep(s)
 
     def drawLine(self, current_pos, next_pos, z):
         self.moveXYZ(next_pos["x"], next_pos["y"], z)
         self.sleep(0.2)
         self.moveXYZ(current_pos["x"], current_pos["y"], z)
         self.sleep(0.2)
-        self.moveXYZ(next_pos["x"], next_pos["y"], z)
+        idx = self.moveXYZ(next_pos["x"], next_pos["y"], z)
+        return idx
 
     def drawStar(self, z):
         star_points = [[315, 0], [278, 20], [278, 55], [240, 40], [200, 60], [230, 0],

@@ -24,6 +24,11 @@ def init():
     dobot.setHOME()
     return jsonify({"status": "OK"})
 
+@app.route("/stop_all", methods=["GET"])
+def stop_all():
+    dobot.stopQueue()
+    return jsonify({"status": "stop"})
+
 @app.route("/move", methods=["POST"])
 def move():
     data = json.loads(request.data)
@@ -34,19 +39,20 @@ def move():
     command_type = data["type"]
 
     global current_position
+    idx = -1
 
     if command_type == "line":
-        dobot.drawLine(current_position, next_position, baseZ)
+        idx = dobot.drawLine(current_position, next_position, baseZ)
 
     if command_type == "up":
-        dobot.moveXYZ(next_position["x"], next_position["y"], upZ)
+        idx = dobot.moveXYZ(next_position["x"], next_position["y"], upZ)
 
     if command_type == "down":
-        dobot.moveXYZ(next_position["x"], next_position["y"], baseZ)
+        idx = dobot.moveXYZ(next_position["x"], next_position["y"], baseZ)
 
     current_position = next_position
 
-    return jsonify({"current_position": current_position})
+    return jsonify({"index": idx, "current_position": current_position})
 
 
 
