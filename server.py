@@ -14,21 +14,17 @@ current_position = {
     "y": 0
 }
 
-baseX = 173
-baseY = -75
+BASE_POS1 = (190, -40)
+BASE_POS2 = (290, 80)
 
 app = Flask(__name__)
 
 
 def map_input(x, y):
-    diff_x = (291 - 173)
-    map_x = diff_x * x
-
-    diff_y = (26 + 75)
-    map_y = diff_y * y
-
-    re_x = baseX + map_x
-    re_y = baseY + map_y
+    diff_x = BASE_POS2[0] - BASE_POS1[0]
+    diff_y = BASE_POS2[1] - BASE_POS1[1]
+    re_x = diff_x * x + BASE_POS1[0]
+    re_y = diff_y * y + BASE_POS1[1]
 
     return re_x, re_y
 
@@ -60,6 +56,18 @@ def adj_z():
     upZ = z + 20
     return jsonify({"baseZ": baseZ, "upZ": upZ})
 
+@app.route("/adj_base_pos", methods=["POST"])
+def adj_base_xy():
+    data = json.loads(request.data)
+    x1 = data["x1"]
+    y1 = data["y1"]
+
+    x2 = data["x2"]
+    y2 = data["y2"]
+    global BASE_POS1, BASE_POS2
+    BASE_POS1 = (x1, y1)
+    BASE_POS2 = (x2, y2)
+    return jsonify({"base_pos1": BASE_POS1, "base_pos2": BASE_POS2})
 
 @app.route("/move", methods=["POST"])
 def move():
@@ -99,8 +107,35 @@ def get_pose():
     global current_position
     current_position["x"] = pose[0]
     current_position["y"] = pose[1]
+    global baseZ
 
-    return jsonify({"current_position": current_position})
+    return jsonify({"current_position": current_position, "base_z": baseZ})
+
+@app.route("/absolute_move", methods=["POST"])
+def absolute_move():
+    data = json.loads(request.data)
+    next_position = {
+        "x": data["x"],
+        "y": data["y"]
+    }
+    command_type = data["type"]
+
+    global current_position
+    idx = -1
+
+    if command_type == "line":
+        round_count = data.get("round_count", 1)
+        idx = dobot.drawLine(current_position, next_position, baseZ, round_count)
+
+    if command_type == "up":
+        idx = dobot.moveXYZ(next_position["x"], next_position["y"], upZ)
+
+    if command_type == "down":
+        idx = dobot.moveXYZ(next_position["x"], next_position["y"], baseZ, mode="jump")
+
+    current_position = next_position
+
+    return jsonify({"index": idx, "current_position": current_position})
 
 
 if __name__ == '__main__':
