@@ -79,7 +79,8 @@ def move():
     idx = -1
 
     if command_type == "line":
-        idx = dobot.drawLine(current_position, next_position, baseZ)
+        round_count = data.get("round_count", 1)
+        idx = dobot.drawLine(current_position, next_position, baseZ, round_count)
 
     if command_type == "up":
         idx = dobot.moveXYZ(next_position["x"], next_position["y"], upZ)

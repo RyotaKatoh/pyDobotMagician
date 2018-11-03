@@ -80,9 +80,10 @@ class Dobot():
         if self.production:
             dType.dSleep(s)
 
-    def drawLine(self, current_pos, next_pos, z):
-        self.moveXYZ(next_pos["x"], next_pos["y"], z)
-        self.moveXYZ(current_pos["x"], current_pos["y"], z)
+    def drawLine(self, current_pos, next_pos, z, round_count=1):
+        for i in range(round_count):
+            self.moveXYZ(next_pos["x"], next_pos["y"], z)
+            self.moveXYZ(current_pos["x"], current_pos["y"], z)
         idx = self.moveXYZ(next_pos["x"], next_pos["y"], z)
         return idx
 
