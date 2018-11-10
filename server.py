@@ -48,29 +48,6 @@ def stop_all():
     return jsonify({"status": "stop"})
 
 
-@app.route("/adj_z", methods=["POST"])
-def adj_z():
-    data = json.loads(request.data)
-    z = data["z"]
-    global baseZ
-    global upZ
-    baseZ = z
-    upZ = z + 20
-    return jsonify({"baseZ": baseZ, "upZ": upZ})
-
-@app.route("/adj_base_pos", methods=["POST"])
-def adj_base_xy():
-    data = json.loads(request.data)
-    x1 = data["x1"]
-    y1 = data["y1"]
-
-    x2 = data["x2"]
-    y2 = data["y2"]
-    global BASE_POS1, BASE_POS2
-    BASE_POS1 = (x1, y1)
-    BASE_POS2 = (x2, y2)
-    return jsonify({"base_pos1": BASE_POS1, "base_pos2": BASE_POS2})
-
 @app.route("/move", methods=["POST"])
 def move():
     print(request.data)
