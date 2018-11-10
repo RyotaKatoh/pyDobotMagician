@@ -79,6 +79,43 @@ def move():
 
     return jsonify({"index": idx, "current_position": current_position})
 
+@app.route("/multi_move", methods=["POST"])
+def multi_move():
+    print(request.data)
+
+    data = json.loads(request.data)
+
+    commands = data.get("commands", [])
+
+    global current_position
+    idx = -1
+    total_command = 0
+    received_commands = len(commands)
+    for cmd in commands:
+        x = cmd["x"]
+        y = cmd["y"]
+
+        re_x, re_y = map_input(x, y)
+        next_position = {
+            "x": re_x,
+            "y": re_y
+        }
+        command_type = cmd["type"]
+
+        if command_type == "line":
+            round_count = cmd.get("round_count", 1)
+            idx = dobot.drawLine(current_position, next_position, baseZ, round_count)
+
+        if command_type == "up":
+            idx = dobot.moveXYZ(next_position["x"], next_position["y"], upZ)
+
+        if command_type == "down":
+            idx = dobot.moveXYZ(next_position["x"], next_position["y"], baseZ, mode="jump")
+
+        current_position = next_position
+        total_command += 1
+
+    return jsonify({"index": idx, "current_position": current_position, "received_commands": received_commands, "total_commands": total_command})
 
 @app.route("/get_pose", methods=["GET"])
 def get_pose():

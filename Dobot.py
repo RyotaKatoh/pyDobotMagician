@@ -70,6 +70,7 @@ class Dobot():
     def stopQueue(self):
         dType.SetQueuedCmdStopExec(self.DobotAPI)
         dType.SetQueuedCmdClear(self.DobotAPI)
+        dType.SetQueuedCmdStartExec(self.DobotAPI)
 
     def getCurrentIndex(self):
         return dType.GetQueuedCmdCurrentIndex(self.DobotAPI)
