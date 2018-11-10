@@ -7,6 +7,7 @@ CON_STR = {
     dType.DobotConnect.DobotConnect_Occupied: "DobotConnect_Occupied"
 }
 
+Y_OFFSET = 20.0 / 22.5
 
 class Dobot():
     def __init__(self, home_x=200, home_y=0, home_z=50, production=False):
@@ -42,14 +43,12 @@ class Dobot():
 
     def moveXYZ(self, x, y, z, r=0, mode="movl"):
         if self.production:
-            y_offset = 20.0 / 22.5
-
             ptp_mode = dType.PTPMode.PTPMOVLXYZMode
             if mode == 'jump':
                 ptp_mode = dType.PTPMode.PTPJUMPXYZMode
 
-            idx = dType.SetPTPCmd(self.DobotAPI, ptp_mode, x, y*y_offset, z, r, isQueued=1)[0]
-            self.sleep(0.2)
+            idx = dType.SetPTPCmd(self.DobotAPI, ptp_mode, x, y*Y_OFFSET, z, r, isQueued=1)[0]
+            self.sleep(0.4)
         else:
             print("try to move ({x}, {y}, {z})".format(x=x, y=y, z=z))
             idx = -1
@@ -58,10 +57,11 @@ class Dobot():
     def getPose(self):
         if self.production:
             pose = dType.GetPose(self.DobotAPI)
+            pose[1] = pose[1] / Y_OFFSET
         else:
             pose = [200, 0, 0]
 
-        return pose[:2]
+        return pose[:3]
 
 
     def startQueue(self):
@@ -69,6 +69,7 @@ class Dobot():
 
     def stopQueue(self):
         dType.SetQueuedCmdStopExec(self.DobotAPI)
+        dType.SetQueuedCmdClear(self.DobotAPI)
 
     def getCurrentIndex(self):
         return dType.GetQueuedCmdCurrentIndex(self.DobotAPI)

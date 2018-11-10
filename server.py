@@ -16,6 +16,8 @@ current_position = {
 
 BASE_POS1 = (190, -40)
 BASE_POS2 = (290, 80)
+BASE_POS3 = (290, -40)
+BASE_POS4 = (190, 80)
 
 app = Flask(__name__)
 
@@ -136,6 +138,55 @@ def absolute_move():
     current_position = next_position
 
     return jsonify({"index": idx, "current_position": current_position})
+
+
+@app.route("/calibrate", methods=["POST"])
+def calibrate_pos():
+    data = json.loads(request.data)
+
+    pose = dobot.getPose()
+
+    cal_type = data["type"]
+    idx = data.get("index", 1)
+
+    global baseZ, upZ, BASE_POS1, BASE_POS2, BASE_POS3, BASE_POS4, current_position
+
+    if cal_type == "z":
+        baseZ = pose[2]
+        upZ = pose[2] + 30
+        return jsonify({"base_z": baseZ, "up_z": upZ})
+
+    if cal_type == "xy":
+        if idx == 1:
+            BASE_POS1 = tuple(pose[:2])
+
+        if idx == 2:
+            BASE_POS2 = tuple(pose[:2])
+
+        if idx == 3:
+            BASE_POS3 = tuple(pose[:2])
+
+        if idx == 4:
+            BASE_POS4 = tuple(pose[:2])
+
+        return jsonify({"idx": idx, "base_pose": pose[:2]})
+
+    if cal_type == "move":
+        for pos in [BASE_POS1, BASE_POS3, BASE_POS2, BASE_POS4]:
+            idx = dobot.moveXYZ(pos[0], pos[1], baseZ, mode="jump")
+            dobot.sleep(4)
+            print(dobot.getPose())
+
+        dobot.moveXYZ(200, 0, upZ, mode="jump")
+
+        p = dobot.getPose()
+        current_position["x"] = p[0]
+        current_position["y"] = p[1]
+
+        return jsonify({"current_positon": current_position})
+
+    return jsonify({"cal_type": cal_type})
+
 
 
 if __name__ == '__main__':
