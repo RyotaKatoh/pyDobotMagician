@@ -4,7 +4,10 @@ import signal
 import argparse
 import sys
 
+import os
+import pickle
 import json
+import numpy as np
 
 baseZ = 8
 upZ = 20
@@ -14,21 +17,113 @@ current_position = {
     "y": 0
 }
 
+BASE_LENGTH = 120
+
 BASE_POS1 = (190, -40)
 BASE_POS2 = (290, 80)
 BASE_POS3 = (290, -40)
 BASE_POS4 = (190, 80)
 
+ROTATION_2 = np.ones([2,2])
+ROTATION_3 = np.ones([2,2])
+ROTATION_4 = np.ones([2,2])
+
 app = Flask(__name__)
+
+def calc_rot(A, B):
+    Ainv = np.linalg.inv(A)
+    x = np.dot(Ainv, B)
+    return x.reshape([2, 2])
+
+def setup_rotation():
+    A2 = np.array([[BASE_POS1[0], BASE_POS1[1], 0, 0],
+                  [0, 0, BASE_POS1[0], BASE_POS1[1]],
+                  [BASE_POS4[0], BASE_POS4[1], 0, 0],
+                  [0, 0, BASE_POS4[0], BASE_POS4[1]]])
+    B2 = np.array([BASE_POS2[0] - BASE_LENGTH, BASE_POS2[1] - BASE_LENGTH, BASE_POS3[0] - BASE_LENGTH, BASE_POS3[1] + BASE_LENGTH])
+    rot2 = calc_rot(A2, B2)
+    global ROTATION_2
+    ROTATION_2 = rot2
+
+    A3 = np.array([[BASE_POS1[0], BASE_POS1[1], 0, 0],
+                  [0, 0, BASE_POS1[0], BASE_POS1[1]],
+                  [BASE_POS4[0], BASE_POS4[1], 0, 0],
+                  [0, 0, BASE_POS4[0], BASE_POS4[1]]])
+    B3 = np.array([BASE_POS3[0] - BASE_LENGTH, BASE_POS3[1], BASE_POS2[0] - BASE_LENGTH, BASE_POS2[1]])
+    rot3 = calc_rot(A3, B3)
+    global ROTATION_3
+    ROTATION_3 = rot3
+
+    A4 = np.array([[BASE_POS1[0], BASE_POS1[1], 0, 0],
+                  [0, 0, BASE_POS1[0], BASE_POS1[1]],
+                  [BASE_POS3[0], BASE_POS3[1], 0, 0],
+                  [0, 0, BASE_POS3[0], BASE_POS3[1]]])
+    B4 = np.array([BASE_POS4[0], BASE_POS4[1] - BASE_LENGTH, BASE_POS2[0], BASE_POS2[1] - BASE_LENGTH])
+
+    rot4 = calc_rot(A4, B4)
+    global ROTATION_4
+    ROTATION_4 = rot4
+
+    return rot2, rot3, rot4
 
 
 def map_input(x, y):
-    diff_x = BASE_POS2[0] - BASE_POS1[0]
-    diff_y = BASE_POS2[1] - BASE_POS1[1]
-    re_x = diff_x * x + BASE_POS1[0]
-    re_y = diff_y * y + BASE_POS1[1]
+    diff_x = (BASE_POS3[0] - BASE_POS1[0], BASE_POS3[1] - BASE_POS1[1])
+    diff_y = (BASE_POS4[0] - BASE_POS1[0], BASE_POS4[1] - BASE_POS1[1])
 
-    return re_x, re_y
+    re_pos = (diff_x[0] * x + diff_y[0] * y, diff_x[1] * x + diff_y[1] * y)
+
+    return re_pos[0] + BASE_POS1[0], re_pos[1] + BASE_POS1[1]
+
+
+    # diff_x = BASE_POS2[0] - BASE_POS1[0]
+    # diff_y = BASE_POS2[1] - BASE_POS1[1]
+    # re_x = diff_x * x + BASE_POS1[0]
+    # re_y = diff_y * y + BASE_POS1[1]
+    #
+    # print("BASE_POS1: {0}".format(BASE_POS1))
+    # print("BASE_POS2: {0}".format(BASE_POS2))
+    # print("BASE_POS3: {0}".format(BASE_POS3))
+    # print("BASE_POS4: {0}".format(BASE_POS4))
+    # print('=======')
+    # print((x, y))
+    # print((re_x, re_y))
+
+    # return re_x, re_y
+    #
+    # diff = np.array([BASE_LENGTH * x, BASE_LENGTH * y])
+    #
+    # print('=====base pos======')
+    # print(BASE_POS1)
+    # print(BASE_POS2)
+    # print(BASE_POS3)
+    # print(BASE_POS4)
+    # print("=============")
+    # print("")
+    #
+    #
+    # rotation2 = np.dot(ROTATION_2, np.array(BASE_POS1))
+    # rotation3 = np.dot(ROTATION_3, np.array(BASE_POS1))
+    # rotation4 = np.dot(ROTATION_4, np.array(BASE_POS1))
+    #
+    # print(rotation2)
+    # print(rotation3)
+    # print(rotation4)
+    #
+    # print("=====ROTATION=====")
+    # print(ROTATION_2)
+    # print(ROTATION_3)
+    # print(ROTATION_4)
+    #
+    # re_x = (rotation2[0] + rotation3[0] + rotation4[0]) / 3.0 + diff[0]
+    # re_y = (rotation2[1] + rotation3[1] + rotation4[1]) / 3.0 + diff[1]
+    #
+    # print((x, y))
+    # print("=======")
+    # print((re_x, re_y))
+    #
+    # print("fuck")
+    # return re_x, re_y
 
 
 @app.route("/", methods=["GET"])
@@ -67,7 +162,8 @@ def move():
 
     if command_type == "line":
         round_count = data.get("round_count", 1)
-        idx = dobot.drawLine(current_position, next_position, baseZ, round_count)
+        sleep_sec = data.get("sleep_sec", 0.4)
+        idx = dobot.drawLine(current_position, next_position, baseZ, round_count, sleep_sec=sleep_sec)
 
     if command_type == "up":
         idx = dobot.moveXYZ(next_position["x"], next_position["y"], upZ)
@@ -78,6 +174,7 @@ def move():
     current_position = next_position
 
     return jsonify({"index": idx, "current_position": current_position})
+
 
 @app.route("/multi_move", methods=["POST"])
 def multi_move():
@@ -104,7 +201,8 @@ def multi_move():
 
         if command_type == "line":
             round_count = cmd.get("round_count", 1)
-            idx = dobot.drawLine(current_position, next_position, baseZ, round_count)
+            sleep_sec = cmd.get("sleep_sec", 0.4)
+            idx = dobot.drawLine(current_position, next_position, baseZ, round_count, sleep_sec=sleep_sec)
 
         if command_type == "up":
             idx = dobot.moveXYZ(next_position["x"], next_position["y"], upZ)
@@ -115,7 +213,9 @@ def multi_move():
         current_position = next_position
         total_command += 1
 
-    return jsonify({"index": idx, "current_position": current_position, "received_commands": received_commands, "total_commands": total_command})
+    return jsonify({"index": idx, "current_position": current_position, "received_commands": received_commands,
+                    "total_commands": total_command})
+
 
 @app.route("/get_pose", methods=["GET"])
 def get_pose():
@@ -126,6 +226,7 @@ def get_pose():
     global baseZ
 
     return jsonify({"current_position": current_position, "base_z": baseZ})
+
 
 @app.route("/absolute_move", methods=["POST"])
 def absolute_move():
@@ -141,7 +242,8 @@ def absolute_move():
 
     if command_type == "line":
         round_count = data.get("round_count", 1)
-        idx = dobot.drawLine(current_position, next_position, baseZ, round_count)
+        sleep_sec = data.get("sleep_sec", 0.4)
+        idx = dobot.drawLine(current_position, next_position, baseZ, round_count, sleep_sec=sleep_sec)
 
     if command_type == "up":
         idx = dobot.moveXYZ(next_position["x"], next_position["y"], upZ)
@@ -183,6 +285,8 @@ def calibrate_pos():
         if idx == 4:
             BASE_POS4 = tuple(pose[:2])
 
+        setup_rotation()
+
         return jsonify({"idx": idx, "base_pose": pose[:2]})
 
     if cal_type == "move":
@@ -202,11 +306,24 @@ def calibrate_pos():
     return jsonify({"cal_type": cal_type})
 
 
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--env", type=str, default="debug")
     args = parser.parse_args()
+
+    setting_path = "./setting.pickle"
+    if os.path.exists(setting_path):
+        with open(setting_path, "rb") as f:
+            settings = pickle.load(f)
+
+            BASE_POS1 = settings["base_pos1"]
+            BASE_POS2 = settings["base_pos2"]
+            BASE_POS3 = settings["base_pos3"]
+            BASE_POS4 = settings["base_pos4"]
+            baseZ = settings["base_z"]
+            upz = baseZ + 30
+
+            setup_rotation()
 
     production = False
     if args.env == "production":
@@ -224,6 +341,17 @@ if __name__ == '__main__':
             print("disconnect")
         else:
             print("disconnect")
+
+        params = {
+            "base_pos1": BASE_POS1,
+            "base_pos2": BASE_POS2,
+            "base_pos3": BASE_POS3,
+            "base_pos4": BASE_POS4,
+            "base_z": baseZ,
+        }
+
+        with open(setting_path, "wb") as f:
+            pickle.dump(params, f)
 
         sys.exit(0)
 

@@ -41,14 +41,14 @@ class Dobot():
     def setHOME(self):
         dType.SetHOMECmd(self.DobotAPI, temp=0, isQueued=1)
 
-    def moveXYZ(self, x, y, z, r=0, mode="movl"):
+    def moveXYZ(self, x, y, z, r=0, mode="movl", sleep_sec=0.4):
         if self.production:
             ptp_mode = dType.PTPMode.PTPMOVLXYZMode
             if mode == 'jump':
                 ptp_mode = dType.PTPMode.PTPJUMPXYZMode
 
             idx = dType.SetPTPCmd(self.DobotAPI, ptp_mode, x, y*Y_OFFSET, z, r, isQueued=1)[0]
-            self.sleep(0.4)
+            self.sleep(sleep_sec)
         else:
             print("try to move ({x}, {y}, {z})".format(x=x, y=y, z=z))
             idx = -1
@@ -82,11 +82,11 @@ class Dobot():
         if self.production:
             dType.dSleep(s)
 
-    def drawLine(self, current_pos, next_pos, z, round_count=1):
+    def drawLine(self, current_pos, next_pos, z, round_count=1, sleep_sec=0.4):
         for i in range(round_count):
-            self.moveXYZ(next_pos["x"], next_pos["y"], z)
-            self.moveXYZ(current_pos["x"], current_pos["y"], z)
-        idx = self.moveXYZ(next_pos["x"], next_pos["y"], z)
+            self.moveXYZ(next_pos["x"], next_pos["y"], z, sleep_sec=sleep_sec)
+            self.moveXYZ(current_pos["x"], current_pos["y"], z, sleep_sec=sleep_sec)
+        idx = self.moveXYZ(next_pos["x"], next_pos["y"], z, sleep_sec=sleep_sec)
         return idx
 
 
