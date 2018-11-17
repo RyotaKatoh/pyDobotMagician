@@ -8,6 +8,7 @@ import os
 import pickle
 import json
 import numpy as np
+import datetime
 
 baseZ = 8
 upZ = 20
@@ -178,9 +179,11 @@ def move():
 
 @app.route("/multi_move", methods=["POST"])
 def multi_move():
-    print(request.data)
-
     data = json.loads(request.data)
+
+    command_filename = "commands_{0}.json".format(datetime.datetime.strftime(datetime.datetime.now(), "%Y%m%d%H%M%S"))
+    with open(os.path.join("./commands", command_filename), "w") as f:
+        json.dump(data, f)
 
     commands = data.get("commands", [])
 
@@ -188,7 +191,9 @@ def multi_move():
     idx = -1
     total_command = 0
     received_commands = len(commands)
-    for cmd in commands:
+
+    for i, cmd in enumerate(commands):
+        print("({i}/{n}) {cmd}".format(i=i, n=received_commands, cmd=cmd))
         x = cmd["x"]
         y = cmd["y"]
 
@@ -358,4 +363,4 @@ if __name__ == '__main__':
 
     signal.signal(signal.SIGINT, defer)
 
-    app.run(host="0.0.0.0", port=3001, threaded=False)
+    app.run(host="0.0.0.0", port=3001, threaded=True)
